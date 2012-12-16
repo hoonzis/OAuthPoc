@@ -20,7 +20,13 @@
 		public OAuthAuthorizationManager() {
 		}
 
-		protected override bool CheckAccessCore(OperationContext operationContext) {
+        /// <summary>
+        /// This method authorizes the OAuth request. The token is extracted from the header and the scope is checked.
+        /// For the demonstration pourposes the scope is the URL of the service. In real world applications the scope would be the functional entity being accessed (eg. the calendar, the fotos etc...).
+        /// </summary>
+        /// <param name="operationContext"></param>
+        /// <returns></returns>
+        protected override bool CheckAccessCore(OperationContext operationContext) {
 			if (!base.CheckAccessCore(operationContext)) {
 				return false;
 			}
@@ -55,10 +61,11 @@
 					// Only allow this method call if the access token scope permits it.
 					string[] scopes = accessToken.Scope.Split('|');
 
-                    //originally this was ment to be used: operationContext.IncomingMessageHeaders.Action
-                    //var action = operationContext.Host.BaseAddresses + operationContext.IncomingMessageProperties.Via.AbsolutePath;
+                    //extracting the URL which is demanded
                     var action = "http://" + operationContext.IncomingMessageProperties.Via.Authority + operationContext.IncomingMessageProperties.Via.AbsolutePath;
-					if (scopes.Contains(action)) {
+					
+                    //comparing the SCOPE and the demanded URL
+                    if (scopes.Contains(action)) {
 						return true;
 					}
 				}

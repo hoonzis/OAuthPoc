@@ -48,10 +48,20 @@ namespace ConsumerApp
             }
         }
 
+        /// <summary>
+        /// Handler for the 'Authorize' button. The consumer application will ask the provider the rights to access some data.
+        /// For this PoC the "scope" of the demand is the same as the URL of the service which will be accessed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         protected void getAuthorizationButton_Click(object sender, EventArgs e)
         {
+           
             var serviceScope = serviceTextBox.Text;
+            //the scope is added to the session.
             Session["serviceScope"] = serviceScope;
+
+            //creating the DotNetOPenAuth Consumer class
             WebConsumer consumer = this.CreateConsumer();
             UriBuilder callback = new UriBuilder(Request.Url);
             callback.Query = null;
@@ -70,38 +80,32 @@ namespace ConsumerApp
             {
                 throw new InvalidOperationException("No access token!");
             }
-            
-            httpRequest = consumer.PrepareAuthorizedRequest(serviceEndpoint, accessToken);
-            //httpRequest.BeginGetResponse(new AsyncCallback(GetResponse), null);
-            var response = httpRequest.GetResponse();
-            using (var stream = response.GetResponseStream())
+
+            try
             {
-                
-                
-                using (StreamReader reader = new StreamReader(stream))
+                httpRequest = consumer.PrepareAuthorizedRequest(serviceEndpoint, accessToken);
+                var response = httpRequest.GetResponse();
+                using (var stream = response.GetResponseStream())
                 {
-                    String data = reader.ReadToEnd();
-                    JavaScriptSerializer js = new JavaScriptSerializer();
-                    var dataObject = js.Deserialize<dynamic>(data);
-                    for (int i = 0; i < dataObject.Length; i++)
+
+
+                    using (StreamReader reader = new StreamReader(stream))
                     {
-                        accountListBox.Items.Add(String.Format("{0} - {1} - {2} - {3}", dataObject[i]["Name"], dataObject[i]["Iban"], dataObject[i]["Balance"], dataObject[i]["Currency"]));
+                        String data = reader.ReadToEnd();
+                        JavaScriptSerializer js = new JavaScriptSerializer();
+                        var dataObject = js.Deserialize<dynamic>(data);
+                        for (int i = 0; i < dataObject.Length; i++)
+                        {
+                            accountListBox.Items.Add(String.Format("{0} - {1} - {2} - {3}", dataObject[i]["Name"], dataObject[i]["Iban"], dataObject[i]["Balance"], dataObject[i]["Currency"]));
+                        }
+                        dataLabel.Text = data;
                     }
-                    dataLabel.Text = data;
                 }
             }
-        }
-
-        private void GetResponse(IAsyncResult result)
-        {
-            var response = httpRequest.GetResponse();
-            using (var stream = response.GetResponseStream())
+            catch (WebException ex)
             {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    String data = reader.ReadToEnd();
-                    dataLabel.Text = data;
-                }
+                var message = String.Format("Could not access the data: {0}", ex.Message);
+                dataLabel.Text = message;
             }
         }
 
